@@ -29,7 +29,7 @@ namespace cg::renderer
 
 		void set_viewport(size_t in_width, size_t in_height);
 
-		void draw(size_t num_vertexes, size_t vertex_offest);
+		void draw(size_t num_vertexes, size_t vertex_offset);
 
 		std::function<std::pair<float4, VB>(float4 vertex, VB vertex_data)> vertex_shader;
 		std::function<cg::color(const VB& vertex_data, const float z)> pixel_shader;
@@ -54,8 +54,10 @@ namespace cg::renderer
 	{
 		if (in_render_target)
 			render_target = in_render_target;
+			if(in_depth_buffer){
+				depth_buffer = in_depth_buffer;
+			}
 
-		// TODO Lab: 1.06 Adjust `set_render_target`, and `clear_render_target` methods of `cg::renderer::rasterizer` class to consume a depth buffer
 	}
 
 	template<typename VB, typename RT>
@@ -171,9 +173,6 @@ namespace cg::renderer
 			}
 		}
 
-
-
-		// TODO Lab: 1.06 Add `Depth test` stage to `draw` method of `cg::renderer::rasterizer`
 	}
 
 	template<typename VB, typename RT>
