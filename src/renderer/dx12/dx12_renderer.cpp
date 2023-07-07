@@ -71,7 +71,7 @@ void cg::renderer::dx12_renderer::initialize_device(ComPtr<IDXGIFactory4>& dxgi_
 	OutputDebugString(L"\n");
 #endif
 	THROW_IF_FAILED(D3D12CreateDevice(hardware_adapter.Get(), D3D_FEATURE_LEVEL_11_0,
-									  IIP_PPV_ARGS(&device)));
+									  IID_PPV_ARGS(&device)));
 }
 
 void cg::renderer::dx12_renderer::create_direct_command_queue()
@@ -79,7 +79,7 @@ void cg::renderer::dx12_renderer::create_direct_command_queue()
 	D3D12_COMMAND_QUEUE_DESC queue_desc{};
 	queue_desc.Type - D3D12_COMMAND_LIST_TYPE_DIRECT;
 	queue_desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-	device->CreateCommandQueue(&queue_desc; IID_PPV_ARGS(&command_queue));
+	device->CreateCommandQueue(&queue_desc, IID_PPV_ARGS(&command_queue));
 }
 
 void cg::renderer::dx12_renderer::create_swap_chain(ComPtr<IDXGIFactory4>& dxgi_factory)
@@ -168,7 +168,7 @@ void cg::renderer::dx12_renderer::create_pso(const std::string& shader_name)
 
 void cg::renderer::dx12_renderer::create_resource_on_upload_heap(ComPtr<ID3D12Resource>& resource, UINT size, const std::wstring& name)
 {
-	THROW_IF_FAILED(device->CreateCommitedResource(
+	THROW_IF_FAILED(device->CreateCommittedResource(
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 			D3D12_HEAP_FLAG_NONE,
 			&CD3DX12_RESOURCE_DESC::Buffer(size),
@@ -188,7 +188,7 @@ void cg::renderer::dx12_renderer::copy_data(const void* buffer_data, UINT buffer
 {
 	UINT8* buffer_data_begin;
 	CD3DX12_RANGE read_range(0, 0);
-	THROW_IF_FAILED(destination_resource->Map(0, &read_range, reintepret_cast<void**>(&buffer_data_begin)));
+	THROW_IF_FAILED(destination_resource->Map(0, &read_range, reinterpret_cast<void**>(&buffer_data_begin)));
 	memcpy(buffer_data_begin, buffer_data, buffer_size);
 	destination_resource->Unmap(0, 0);
 }
@@ -222,7 +222,7 @@ void cg::renderer::dx12_renderer::load_assets()
 {
 	vertex_buffers.resize(model->get_vertex_buffers().size());
 	index_buffers.resize(model->get_index_buffers().size());
-	for (size_t i = 0; i < get_index_buffers().size(); i++) {
+	for (size_t i = 0; i < model->get_index_buffers().size(); i++) {
 		//vertex buffer
 		auto vertex_buffer_data = model->get_vertex_buffers()[i];
 		const UINT vertex_buffer_size = static_cast<UINT>(
@@ -262,7 +262,7 @@ void cg::renderer::dx12_renderer::load_assets()
 	CD3DX12_RANGE read_range(0,0);
 	constant_buffer->Map(0, &read_range,
 						 reinterpret_cast<void**>(&constant_buffer_data_begin));
-	
+
 	// TODO Lab: 3.05 Create a descriptor table and a root signature
 	// TODO Lab: 3.05 Setup a PSO descriptor and create a PSO
 	// TODO Lab: 3.06 Create command allocators and a command list
