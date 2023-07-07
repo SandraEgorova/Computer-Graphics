@@ -109,14 +109,14 @@ void cg::renderer::dx12_renderer::create_swap_chain(ComPtr<IDXGIFactory4>& dxgi_
 
 void cg::renderer::dx12_renderer::create_render_target_views()
 {
-	rtv_heap.create_heap(device, D3D13_DESCRIPTOR_HEAP_TYPE_RTV, frame_number);
+	rtv_heap.create_heap(device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, frame_number);
 	for(UINT i = 0; i<frame_number; i++){
 		THROW_IF_FAILED(swap_chain->GetBuffer(i, IID_PPV_ARGS(&render_targets[i])));
 		device->CreateRenderTargetView(
-				render_target[i].Get(),
+				render_targets[i].Get(),
 				nullptr,
 				rtv_heap.get_cpu_descriptor_handle(i)
-				)
+				);
 		std::wstring name(L"Render target ");
 		name +=std::to_wstring(i);
 		render_targets[i]->SetName(name.c_str());
@@ -291,9 +291,9 @@ void cg::renderer::dx12_renderer::load_assets()
 	CD3DX12_RANGE read_range(0,0);
 	constant_buffer->Map(0, &read_range,
 						 reinterpret_cast<void**>(&constant_buffer_data_begin));
-	cbv_srv_heap.create_heap(device, CD3DX12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
+	cbv_srv_heap.create_heap(device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
 							 1,
-							 CD3DX12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE);
+							 D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE);
 	create_constant_buffer_view(constant_buffer, cbv_srv_heap.get_cpu_descriptor_handle(0));
 	// TODO Lab: 3.05 Create a descriptor table and a root signature
 	// TODO Lab: 3.05 Setup a PSO descriptor and create a PSO
@@ -330,7 +330,7 @@ void cg::renderer::descriptor_heap::create_heap(ComPtr<ID3D12Device>& device, D3
 	heap_desc.NumDescriptors = number;
 	heap_desc.Type = type;
 	heap_desc.Flags = flags;
-	THROW_IF_FAILED(device->CrateDescriptorHeap(
+	THROW_IF_FAILED(device->CreateDescriptorHeap(
 			&heap_desc,
 			IID_PPV_ARGS(&heap)));
 	descriptor_size=device->GetDescriptorHandleIncrementSize(type);
