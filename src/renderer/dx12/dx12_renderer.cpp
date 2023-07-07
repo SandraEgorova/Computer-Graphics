@@ -90,7 +90,7 @@ void cg::renderer::dx12_renderer::create_swap_chain(ComPtr<IDXGIFactory4>& dxgi_
 	swap_chain_desk.Width = settings->width;
 	swap_chain_desk.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	swap_chain_desk.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	swap_chain_desk.SwapEffect = DXGI_SWAP_FLIP_SEQUENTIAL;
+	swap_chain_desk.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
 	swap_chain_desk.SampleDesc.Count = 1;
 	ComPtr<IDXGISwapChain1> temp_swap_chain;
 	THROW_IF_FAILED(dxgi_factory->CreateSwapChainForHwnd(
@@ -172,7 +172,7 @@ void cg::renderer::dx12_renderer::create_resource_on_upload_heap(ComPtr<ID3D12Re
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 			D3D12_HEAP_FLAG_NONE,
 			&CD3DX12_RESOURCE_DESC::Buffer(size),
-			D3D12_RESOURSE_STATE_GENERIC_READ,
+			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
 			IID_PPV_ARGS(&resource)));
 	if (!name.empty()) {
