@@ -185,7 +185,7 @@ void cg::renderer::dx12_renderer::create_root_signature(const D3D12_STATIC_SAMPL
 			&signature,
 			&error);
 	if (FAILED(res)) {
-		OuputDebugStringA((char*) error->GetBufferPointer());
+		OutputDebugStringA((char*) error->GetBufferPointer());
 		THROW_IF_FAILED(res);
 	}
 	THROW_IF_FAILED(device->CreateRootSignature(
