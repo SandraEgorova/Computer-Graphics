@@ -18,10 +18,9 @@ void cg::renderer::dx12_renderer::init()
 	camera->set_height(static_cast<float>(settings->height));
 	camera->set_width(static_cast<float>(settings->width));
 	camera->set_position(float3{
-		settings->camera_position[0],
-				settings->camera_position[1],
-				settings->camera_position[2]
-	});
+			settings->camera_position[0],
+			settings->camera_position[1],
+			settings->camera_position[2]});
 	camera->set_phi(settings->camera_phi);
 	camera->set_theta(settings->camera_theta);
 	camera->set_angle_of_view(settings->camera_angle_of_view);
@@ -50,14 +49,14 @@ ComPtr<IDXGIFactory4> cg::renderer::dx12_renderer::get_dxgi_factory()
 	UINT dxgi_factory_flag = 0;
 #ifdef _DEBUG
 	ComPtr<ID3D12Debug> debug_controller;
-	 if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debug_controller))))
-	 {
-		 debug_controller->EnableDebugLayer();
-		 dxgi_factory_flag |= DXGI_CREATE_FACTORY_DEBUG;
-	 }
+	if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debug_controller))))
+	{
+		debug_controller->EnableDebugLayer();
+		dxgi_factory_flag |= DXGI_CREATE_FACTORY_DEBUG;
+	}
 #endif
-	 ComPtr<IDXGIFactory4> dxgi_factory;
-	 THROW_IF_FAILED(CreateDXGIFactory2(dxgi_factory_flag, IID_PPV_ARGS(&dxgi_factory)));
+	ComPtr<IDXGIFactory4> dxgi_factory;
+	THROW_IF_FAILED(CreateDXGIFactory2(dxgi_factory_flag, IID_PPV_ARGS(&dxgi_factory)));
 	return dxgi_factory;
 }
 
@@ -71,8 +70,8 @@ void cg::renderer::dx12_renderer::initialize_device(ComPtr<IDXGIFactory4>& dxgi_
 	OutputDebugString(adapter_desc.Description);
 	OutputDebugString(L"\n");
 #endif
-	THROW_IF_FAILED(D3D12CreateDevice(hardware_adapter.Get(),D3D_FEATURE_LEVEL_11_0,
-					  IIP_PPV_ARGS(&device)));
+	THROW_IF_FAILED(D3D12CreateDevice(hardware_adapter.Get(), D3D_FEATURE_LEVEL_11_0,
+									  IIP_PPV_ARGS(&device)));
 }
 
 void cg::renderer::dx12_renderer::create_direct_command_queue()
@@ -86,7 +85,7 @@ void cg::renderer::dx12_renderer::create_direct_command_queue()
 void cg::renderer::dx12_renderer::create_swap_chain(ComPtr<IDXGIFactory4>& dxgi_factory)
 {
 	DXGI_SWAP_CHAIN_DESC1 swap_chain_desk{};
-	swap_chain_desk.BufferCount= frame_number;
+	swap_chain_desk.BufferCount = frame_number;
 	swap_chain_desk.Height = settings->height;
 	swap_chain_desk.Width = settings->width;
 	swap_chain_desk.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -100,13 +99,12 @@ void cg::renderer::dx12_renderer::create_swap_chain(ComPtr<IDXGIFactory4>& dxgi_
 			&swap_chain_desk,
 			nullptr,
 			nullptr,
-			&temp_swap_chain ));
-dxgi_factory->MakeWindowAssociation(
+			&temp_swap_chain));
+	dxgi_factory->MakeWindowAssociation(
 			cg::utils::window::get_hwnd(),
 			DXGI_MWA_NO_ALT_ENTER);
-temp_swap_chain.As(&swap_chain);
-frame_index = swap_chain->GetCurrentBackBufferIndex();
-
+	temp_swap_chain.As(&swap_chain);
+	frame_index = swap_chain->GetCurrentBackBufferIndex();
 }
 
 void cg::renderer::dx12_renderer::create_render_target_views()
@@ -132,7 +130,7 @@ void cg::renderer::dx12_renderer::create_command_list()
 
 void cg::renderer::dx12_renderer::load_pipeline()
 {
-	ComPtr<IDXGIFactory4>dxgi_factory = get_dxgi_factory();
+	ComPtr<IDXGIFactory4> dxgi_factory = get_dxgi_factory();
 	initialize_device(dxgi_factory);
 	create_direct_command_queue();
 	create_swap_chain(dxgi_factory);
@@ -170,7 +168,16 @@ void cg::renderer::dx12_renderer::create_pso(const std::string& shader_name)
 
 void cg::renderer::dx12_renderer::create_resource_on_upload_heap(ComPtr<ID3D12Resource>& resource, UINT size, const std::wstring& name)
 {
-	// TODO Lab: 3.03 Implement resource creation on upload heap
+	THROW_IF_FAILED(device->CreateCommitedResource(
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+			D3D12_HEAP_FLAG_NONE,
+			&CD3DX12_RESOURCE_DESC::Buffer(size),
+			D3D12_RESOURSE_STATE_GENERIC_READ,
+			nullptr,
+			IID_PPV_ARGS(&resource)));
+	if (!name.empty()) {
+		resource->SetName(name.c_str());
+	}
 }
 
 void cg::renderer::dx12_renderer::create_resource_on_default_heap(ComPtr<ID3D12Resource>& resource, UINT size, const std::wstring& name, D3D12_RESOURCE_DESC* resource_descriptor)
@@ -179,7 +186,11 @@ void cg::renderer::dx12_renderer::create_resource_on_default_heap(ComPtr<ID3D12R
 
 void cg::renderer::dx12_renderer::copy_data(const void* buffer_data, UINT buffer_size, ComPtr<ID3D12Resource>& destination_resource)
 {
-	// TODO Lab: 3.03 Implement map, unmap, and copying data to the resource
+	UINT8* buffer_data_begin;
+	CD3DX12_RANGE read_range(0, 0);
+	THROW_IF_FAILED(destination_resource->Map(0, &read_range, reintepret_cast<void**>(&buffer_data_begin)));
+	memcpy(buffer_data_begin, buffer_data, buffer_size);
+	destination_resource->Unmap(0, 0);
 }
 
 void cg::renderer::dx12_renderer::copy_data(const void* buffer_data, const UINT buffer_size, ComPtr<ID3D12Resource>& destination_resource, ComPtr<ID3D12Resource>& intermediate_resource, D3D12_RESOURCE_STATES state_after, int row_pitch, int slice_pitch)
@@ -209,20 +220,57 @@ void cg::renderer::dx12_renderer::create_constant_buffer_view(const ComPtr<ID3D1
 
 void cg::renderer::dx12_renderer::load_assets()
 {
+	vertex_buffers.resize(model->get_vertex_buffers().size());
+	index_buffers.resize(model->get_index_buffers().size());
+	for (size_t i = 0; i < get_index_buffers().size(); i++) {
+		//vertex buffer
+		auto vertex_buffer_data = model->get_vertex_buffers()[i];
+		const UINT vertex_buffer_size = static_cast<UINT>(
+				vertex_buffer_data->get_size_in_bytes());
+		std::wstring vertex_buffer_name(L"Vertex buffer ");
+		vertex_buffer_name += std::to_wstring(i);
+		create_resource_on_upload_heap(
+				vertex_buffers[i],
+				vertex_buffer_size,
+				vertex_buffer_name);
+		copy_data(vertex_buffer_data->get_data(),
+				  vertex_buffer_size,
+				  vertex_buffers[i]);
+
+
+		//index buffer
+		auto index_buffer_data = model->get_index_buffers()[i];
+		const UINT index_buffer_size = static_cast<UINT>(
+				index_buffer_data->get_size_in_bytes());
+		std::wstring index_buffer_name(L"Index buffer ");
+		index_buffer_name += std::to_wstring(i);
+		create_resource_on_upload_heap(
+				index_buffers[i],
+				index_buffer_size,
+				index_buffer_name);
+		copy_data(index_buffer_data->get_data(),
+				  index_buffer_size,
+				  index_buffers[i]);
+	}
+	//constant buffer
+	std::wstring const_buffer_name(L"Constant buffer ");
+	create_resource_on_upload_heap(
+			constant_buffer,
+			64 * 1024,
+			const_buffer_name);
+	copy_data(&cb, sizeof(cb), constant_buffer);
+	CD3DX12_RANGE read_range(0,0);
+	constant_buffer->Map(0, &read_range,
+						 reinterpret_cast<void**>(&constant_buffer_data_begin));
+	
 	// TODO Lab: 3.05 Create a descriptor table and a root signature
 	// TODO Lab: 3.05 Setup a PSO descriptor and create a PSO
 	// TODO Lab: 3.06 Create command allocators and a command list
-
 	// TODO Lab: 3.04 Create a descriptor heap for a constant buffer
-
-	// TODO Lab: 3.03 Allocate memory for vertex and index buffers
-	// TODO Lab: 3.03 Create committed resources for vertex, index and constant buffers on upload heap
 	// TODO Lab: 3.03 Copy resource data to suitable resources
 	// TODO Lab: 3.04 Create vertex buffer views
 	// TODO Lab: 3.04 Create index buffer views
-
 	// TODO Lab: 3.04 Create a constant buffer view
-
 	// TODO Lab: 3.07 Create a fence and fence event
 }
 
