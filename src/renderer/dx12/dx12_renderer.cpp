@@ -233,7 +233,7 @@ ComPtr<ID3DBlob> cg::renderer::dx12_renderer::compile_shader(const std::filesyst
 
 void cg::renderer::dx12_renderer::create_pso(const std::string& shader_name)
 {
-	CComPtr<ID3DBlob> vertex_shader = compile_shader(
+	ComPtr<ID3DBlob> vertex_shader = compile_shader(
 			get_shader_path(shader_name),
 			"VSMain",
 			"vs_5_0");
@@ -262,7 +262,7 @@ void cg::renderer::dx12_renderer::create_pso(const std::string& shader_name)
 			 D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
 
 	};
-	D3D12_GRAPHICS_PIPLINE_STATE_DESC pso_desc();
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc = {};
 	pso_desc().InputLayout = {input_descs, _countof(input_descs)};
 	pso_desc.pRootSignature = root_signature.Get();
 	pso_desc.VS = CD3DX12_SHADER_BYTECODE(vertex_shader.Get());
