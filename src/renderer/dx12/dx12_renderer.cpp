@@ -137,7 +137,12 @@ void cg::renderer::dx12_renderer::create_command_allocators()
 
 void cg::renderer::dx12_renderer::create_command_list()
 {
-	// TODO Lab: 3.06 Create command allocators and a command list
+	THROW_IF_FAILED(device->CreateCommandList(
+			0,
+			D3D12_COMMAND_LIST_TYPE_DIRECT,
+			command_allocators[frame_index].Get(),
+			pipeline_state.Get(),
+			IID_PPV_ARGS(&command_list)));
 }
 
 
@@ -269,11 +274,11 @@ void cg::renderer::dx12_renderer::create_pso(const std::string& shader_name)
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc = {};
 	pso_desc().InputLayout = {input_descs, _countof(input_descs)};
 	pso_desc.pRootSignature = root_signature.Get();
-	pso_desc.VS = CD3DX12_SHADER_BYTECODE(vertex_shader.Get());
+	pso_desc.VS = CD3DX12_SHADER_BYTloadECODE(vertex_shader.Get());
 	pso_desc.PS = CD3DX12_SHADER_BYTECODE(pixel_shader.Get());
-	pso_desc.RasterizerState = CD3DX13_RASTERIZER_DESC(D3D12_DEFAULT);
+	pso_desc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 	pso_desc.RasterizerState.FrontCounterClockwise = TRUE;
-	pso_desc.RasterizerState.FilMode = D3D12_FILL_MODE_SOLID;
+	pso_desc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
 	pso_desc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 	pso_desc.DepthStencilState.DepthEnable = FALSE;
 	pso_desc.DepthStencilState.StencilEnable = FALSE;
@@ -354,6 +359,8 @@ void cg::renderer::dx12_renderer::load_assets()
 {
 	create_root_signature(nullptr, 0);
 	create_pso("shaders.hlsl");
+	create_command_allocators();
+	create_command_list();
 	vertex_buffers.resize(model->get_vertex_buffers().size());
 	vertex_buffer_views.resize(model->get_vertex_buffers().size());
 	index_buffers.resize(model->get_index_buffers().size());
