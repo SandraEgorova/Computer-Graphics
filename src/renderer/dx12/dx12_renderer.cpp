@@ -42,7 +42,7 @@ void cg::renderer::dx12_renderer::update()
 void cg::renderer::dx12_renderer::render()
 {
 	populate_command_list();
-	
+
 	ID3D12CommandList* command_lists[] = {command_list.Get()};
 	command_queue->ExecuteCommandLists(
 			_countof(command_lists),
@@ -259,7 +259,7 @@ void cg::renderer::dx12_renderer::create_pso(const std::string& shader_name)
 			get_shader_path(shader_name),
 			"PSMain",
 			"ps_5_0");
-	D3D12_INPUT_ELEMENT_DESC input_descs[]={
+	D3D12_INPUT_ELEMENT_DESC input_descs[] = {
 			{"POSITION", 0,
 			 DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
 			 D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
@@ -422,11 +422,18 @@ void cg::renderer::dx12_renderer::load_assets()
 							 D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE);
 	create_constant_buffer_view(constant_buffer, cbv_srv_heap.get_cpu_descriptor_handle(0));
 
-	// TODO Lab: 3.06 Create command allocators and a command list
 
-
-	// TODO Lab: 3.07 Create a fence and fence event
 	THROW_IF_FAILED(command_list->Close());
+	//create a fence
+	THROW_IF_FAILED(device->CreateFence(
+			0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)));
+	fence_event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+
+	if (fence_event == nullptr)
+	{
+		THROW_IF_FAILED(HRESULT_FROM_WIN32(GetLastError()));
+	}
+	wait_for_gpu();
 }
 
 
@@ -451,8 +458,7 @@ void cg::renderer::dx12_renderer::populate_command_list()
 			CD3DX12_RESOURCE_BARRIER::Transition(
 					render_targets[frame_index].Get(),
 					D3D12_RESOURCE_STATE_PRESENT,
-					D3D12_RESOURCE_STATE_RENDER_TARGET)
-	};
+					D3D12_RESOURCE_STATE_RENDER_TARGET)};
 	command_list->ResourceBarrier(
 			_countof(begin_barriers),
 			begin_barriers);
@@ -461,7 +467,7 @@ void cg::renderer::dx12_renderer::populate_command_list()
 			1,
 			&rtv_heap.get_cpu_descriptor_handle(frame_index),
 			FALSE,
-			nullptr );
+			nullptr);
 	const float clear_color[] = {0.f, 0.f, 0.f, 1.f};
 	command_list->ClearRenderTargetView(
 			rtv_heap.get_cpu_descriptor_handle(frame_index),
@@ -470,37 +476,58 @@ void cg::renderer::dx12_renderer::populate_command_list()
 			nullptr);
 	for (size_t s = 0; s < model->get_vertex_buffers().size(); s++) {
 
-		if(!model->get_per_shape_texture_files()[s].empty())
+		if (!model->get_per_shape_texture_files()[s].empty())
 		{
 
-		command_list->IASetVertexBuffers(0, 1, &vertex_buffer_views[s]);
-		command_list->IASetIndexBuffer(&index_buffer_views[s]);
-		command_list->DrawIndexedInstanced(
-				static_cast<UINT>(
-						model->get_index_buffers()[s]->get_number_of_elements()),
-				1, 0, 0, 0);
+			command_list->IASetVertexBuffers(0, 1, &vertex_buffer_views[s]);
+			command_list->IASetIndexBuffer(&index_buffer_views[s]);
+			command_list->DrawIndexedInstanced(
+					static_cast<UINT>(
+							model->get_index_buffers()[s]->get_number_of_elements()),
+					1, 0, 0, 0);
+		}
+		D3D12_RESOURCE_BARRIER end_barriers[] = {
+				CD3DX12_RESOURCE_BARRIER::Transition(
+						render_targets[frame_index].Get(),
+						D3D12_RESOURCE_STATE_PRESENT,
+						D3D12_RESOURCE_STATE_RENDER_TARGET)};
+		command_list->ResourceBarrier(
+				_countof(end_barriers),
+				end_barriers);
+		THROW_IF_FAILED(command_list->Close());
 	}
-	D3D12_RESOURCE_BARRIER end_barriers[] = {
-			CD3DX12_RESOURCE_BARRIER::Transition(
-					render_targets[frame_index].Get(),
-					D3D12_RESOURCE_STATE_PRESENT,
-					D3D12_RESOURCE_STATE_RENDER_TARGET)
-	};
-	command_list->ResourceBarrier(
-		_countof(end_barriers),
-		end_barriers);
-	THROW_IF_FAILED(command_list->Close());
 }
-
 
 void cg::renderer::dx12_renderer::move_to_next_frame()
 {
-	// TODO Lab: 3.07 Implement `move_to_next_frame` method
+	const UINT64 current_fence_value = fence_values[frame_index];
+	THROW_IF_FAILED(command_queue->Signal(
+			fence.Get(),
+			current_fence_value));
+
+	frame_index = swap_chain->GetCurrentBackBufferIndex();
+
+	if (fence->GetCompletedValue() < fence_values[frame_index]) {
+		THROW_IF_FAILED(fence->SetEventOnCompletion(
+				fence_values[frame_index],
+				fence_event));
+		WaitForSingleObjectEx(fence_event, INFINITE, FALSE);
+		fence_values[frame_index]++;
+	}
+
+	fence_values[frame_index] = current_fence_value + 1;
 }
 
 void cg::renderer::dx12_renderer::wait_for_gpu()
 {
-	// TODO Lab: 3.07 Implement `wait_for_gpu` method
+	THROW_IF_FAILED(command_queue->Signal(
+			fence.Get(),
+			fence_values[frame_index]));
+	THROW_IF_FAILED(fence->SetEventOnCompletion(
+			fence_values[frame_index],
+			fence_event));
+	WaitForSingleObjectEx(fence_event, INFINITE, FALSE);
+	fence_values[frame_index]++;
 }
 
 
