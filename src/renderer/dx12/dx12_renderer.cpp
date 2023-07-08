@@ -26,6 +26,9 @@ void cg::renderer::dx12_renderer::init()
 	camera->set_angle_of_view(settings->camera_angle_of_view);
 	camera->set_z_near(settings->camera_z_near);
 	camera->set_z_far(settings->camera_z_far);
+
+	load_pipeline();
+	load_assets();
 }
 
 void cg::renderer::dx12_renderer::destroy()
