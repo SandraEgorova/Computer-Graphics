@@ -128,7 +128,11 @@ void cg::renderer::dx12_renderer::create_depth_buffer()
 
 void cg::renderer::dx12_renderer::create_command_allocators()
 {
-	// TODO Lab: 3.06 Create command allocators and a command list
+	for (auto& command_allocator: command_allocators) {
+		THROW_IF_FAILED(device->CreateCommandAllocator(
+				D3D12_COMMAND_LIST_TYPE_DIRECT,
+				IID_PPV_ARGS(&command_allocator)));
+	}
 }
 
 void cg::renderer::dx12_renderer::create_command_list()
@@ -401,8 +405,7 @@ void cg::renderer::dx12_renderer::load_assets()
 							 1,
 							 D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE);
 	create_constant_buffer_view(constant_buffer, cbv_srv_heap.get_cpu_descriptor_handle(0));
-	// TODO Lab: 3.05 Create a descriptor table and a root signature
-	// TODO Lab: 3.05 Setup a PSO descriptor and create a PSO
+
 	// TODO Lab: 3.06 Create command allocators and a command list
 
 
