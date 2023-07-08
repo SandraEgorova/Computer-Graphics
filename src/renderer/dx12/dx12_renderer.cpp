@@ -284,7 +284,7 @@ void cg::renderer::dx12_renderer::create_pso(const std::string& shader_name)
 
 	};
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc{};
-	pso_desc().InputLayout = {input_descs, _countof(input_descs)};
+	pso_desc.InputLayout = {input_descs, _countof(input_descs)};
 	pso_desc.pRootSignature = root_signature.Get();
 	pso_desc.VS = CD3DX12_SHADER_BYTECODE(vertex_shader.Get());
 	pso_desc.PS = CD3DX12_SHADER_BYTECODE(pixel_shader.Get());
