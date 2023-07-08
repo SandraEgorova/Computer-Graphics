@@ -41,7 +41,16 @@ void cg::renderer::dx12_renderer::update()
 
 void cg::renderer::dx12_renderer::render()
 {
-	// TODO Lab: 3.06 Implement `render` method
+	populate_command_list();
+	
+	ID3D12CommandList* command_lists[] = {command_list.Get()};
+	command_queue->ExecuteCommandLists(
+			_countof(command_lists),
+			command_lists);
+
+	THROW_IF_FAILED(swap_chain->Present(0, 0));
+
+	move_to_next_frame();
 }
 
 ComPtr<IDXGIFactory4> cg::renderer::dx12_renderer::get_dxgi_factory()
@@ -271,10 +280,10 @@ void cg::renderer::dx12_renderer::create_pso(const std::string& shader_name)
 			 D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
 
 	};
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc = {};
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc{};
 	pso_desc().InputLayout = {input_descs, _countof(input_descs)};
 	pso_desc.pRootSignature = root_signature.Get();
-	pso_desc.VS = CD3DX12_SHADER_BYTloadECODE(vertex_shader.Get());
+	pso_desc.VS = CD3DX12_SHADER_BYTECODE(vertex_shader.Get());
 	pso_desc.PS = CD3DX12_SHADER_BYTECODE(pixel_shader.Get());
 	pso_desc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 	pso_desc.RasterizerState.FrontCounterClockwise = TRUE;
@@ -417,12 +426,70 @@ void cg::renderer::dx12_renderer::load_assets()
 
 
 	// TODO Lab: 3.07 Create a fence and fence event
+	THROW_IF_FAILED(command_list->Close());
 }
 
 
 void cg::renderer::dx12_renderer::populate_command_list()
 {
-	// TODO Lab: 3.06 Implement `populate_command_list` method
+	// Reset
+	THROW_IF_FAILED(command_allocators[frame_index]->Reset());
+	THROW_IF_FAILED(command_list->Reset(
+			command_allocators[frame_index].Get(),
+			pipeline_state_shadow.Get()));
+	// Initial state
+	command_list->SetGraphicsRootSignature(root_signature.Get());
+	ID3D12DescriptorHeap* heap[] = {cbv_srv_heap.get()};
+	command_list->SetDescriptorHeaps(_countof(heap), heap);
+	command_list->SetGraphicsRootDescriptorTable(0, cbv_srv_heap.get_gpu_descriptor_handle(0));
+	command_list->SetGraphicsRootDescriptorTable(2, cbv_srv_heap.get_gpu_descriptor_handle(1));
+
+	command_list->RSSetViewports(1, &view_port);
+	command_list->RSSetScissorRects(1, &scissor_rect);
+	command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	D3D12_RESOURCE_BARRIER begin_barriers[] = {
+			CD3DX12_RESOURCE_BARRIER::Transition(
+					render_targets[frame_index].Get(),
+					D3D12_RESOURCE_STATE_PRESENT,
+					D3D12_RESOURCE_STATE_RENDER_TARGET)
+	};
+	command_list->ResourceBarrier(
+			_countof(begin_barriers),
+			begin_barriers);
+	//drawing
+	command_list->OMSetRenderTargets(
+			1,
+			&rtv_heap.get_cpu_descriptor_handle(frame_index),
+			FALSE,
+			nullptr );
+	const float clear_color[] = {0.f, 0.f, 0.f, 1.f};
+	command_list->ClearRenderTargetView(
+			rtv_heap.get_cpu_descriptor_handle(frame_index),
+			clear_color,
+			0,
+			nullptr);
+	for (size_t s = 0; s < model->get_vertex_buffers().size(); s++) {
+
+		if(!model->get_per_shape_texture_files()[s].empty())
+		{
+
+		command_list->IASetVertexBuffers(0, 1, &vertex_buffer_views[s]);
+		command_list->IASetIndexBuffer(&index_buffer_views[s]);
+		command_list->DrawIndexedInstanced(
+				static_cast<UINT>(
+						model->get_index_buffers()[s]->get_number_of_elements()),
+				1, 0, 0, 0);
+	}
+	D3D12_RESOURCE_BARRIER end_barriers[] = {
+			CD3DX12_RESOURCE_BARRIER::Transition(
+					render_targets[frame_index].Get(),
+					D3D12_RESOURCE_STATE_PRESENT,
+					D3D12_RESOURCE_STATE_RENDER_TARGET)
+	};
+	command_list->ResourceBarrier(
+		_countof(end_barriers),
+		end_barriers);
+	THROW_IF_FAILED(command_list->Close());
 }
 
 
