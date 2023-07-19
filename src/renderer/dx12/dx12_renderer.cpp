@@ -109,7 +109,7 @@ void cg::renderer::dx12_renderer::initialize_device(ComPtr<IDXGIFactory4>& dxgi_
 void cg::renderer::dx12_renderer::create_direct_command_queue()
 {
 	D3D12_COMMAND_QUEUE_DESC queue_desc{};
-	queue_desc.Type - D3D12_COMMAND_LIST_TYPE_DIRECT;
+	queue_desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 	queue_desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
 	device->CreateCommandQueue(&queue_desc, IID_PPV_ARGS(&command_queue));
 }
@@ -466,12 +466,12 @@ void cg::renderer::dx12_renderer::populate_command_list()
 	THROW_IF_FAILED(command_allocators[frame_index]->Reset());
 	THROW_IF_FAILED(command_list->Reset(
 			command_allocators[frame_index].Get(),
-			pipeline_state_shadow.Get()));
+			pipeline_state.Get()));
+
 	// Initial state
 	command_list->SetGraphicsRootSignature(root_signature.Get());
 	ID3D12DescriptorHeap* heap[] = {cbv_srv_heap.get()};
 	command_list->SetDescriptorHeaps(_countof(heap), heap);
-	command_list->SetGraphicsRootDescriptorTable(0, cbv_srv_heap.get_gpu_descriptor_handle(0));
 	command_list->SetGraphicsRootDescriptorTable(2, cbv_srv_heap.get_gpu_descriptor_handle(1));
 
 	command_list->RSSetViewports(1, &view_port);
@@ -512,8 +512,8 @@ void cg::renderer::dx12_renderer::populate_command_list()
 		D3D12_RESOURCE_BARRIER end_barriers[] = {
 				CD3DX12_RESOURCE_BARRIER::Transition(
 						render_targets[frame_index].Get(),
-						D3D12_RESOURCE_STATE_PRESENT,
-						D3D12_RESOURCE_STATE_RENDER_TARGET)};
+						D3D12_RESOURCE_STATE_RENDER_TARGET,
+						D3D12_RESOURCE_STATE_PRESENT)};
 		command_list->ResourceBarrier(
 				_countof(end_barriers),
 				end_barriers);
